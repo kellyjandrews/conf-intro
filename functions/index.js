@@ -50,7 +50,7 @@ function setUsername(recipientNumber, nexmoNumber, message) {
         } else {
             setUser({
                 recipientNumber, nexmoNumber,
-                data: { fullName: message },
+                data: { fullName: message, active: true },
                 onSuccess: 'We have updated your username.',
                 onFail: 'We had a problem updating your username. Try "USERNAME <your_username>".'
             })
