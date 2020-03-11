@@ -91,6 +91,7 @@ async function validateMeet(recipientNumber, nexmoNumber, message) {
             onSuccess: 'Congrats on meeting! We will message you with a new person to meet soon.',
             onFail: 'We had a problem storing your meet. Try again.'
         })
+        // TODO: RUN MATCH
     } else {
         sendMessage(recipientNumber, nexmoNumber, 'That is not the correct ID for your match')
     }
