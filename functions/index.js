@@ -9,8 +9,6 @@ const Nexmo = require('nexmo');
 const { api_key: apiKey, api_secret: apiSecret } = functions.config().nexmo;
 const nexmo = new Nexmo({ apiKey, apiSecret });
 
-const shortid = require('shortid');
-
 exports.inboundSMS = functions.https.onRequest((req, res) => {
     const { msisdn, to: nexmoNumber, text, keyword } = req.body;
     const message = removeKeyword(text);
@@ -43,7 +41,7 @@ function setUsername(recipientNumber, nexmoNumber, message) {
         if (!doc.exists) {
             setUser({
                 recipientNumber, nexmoNumber,
-                data: { fullName: message, shortId: shortid.generate(), active: true, introsMade: [] },
+                data: { fullName: message, shortId: generateId(), active: true, introsMade: [] },
                 onSuccess: 'Awesome! Please reply with TWITTER <your_username>.',
                 onFail: 'We had a problem setting you up. Try "JOIN <your_username>".'
             })
@@ -133,4 +131,8 @@ function removeKeyword(message) {
     const a = message.split(' ');
     a.shift();
     return a.join(' ');
+}
+
+function generateId() {
+    return String(Math.floor(Math.random() * 899999 + 100000))
 }
