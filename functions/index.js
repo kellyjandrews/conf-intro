@@ -24,7 +24,7 @@ exports.inboundSMS = functions.https.onRequest((req, res) => {
             leaveGame(msisdn, nexmoNumber);
             break;
         case 'INFO':
-            info(msisdn, nexmoNumber); // should return my username/twitter/score and info of match
+            info(msisdn, nexmoNumber);
             break;
         case 'MEET':
             validateMeet(msisdn, nexmoNumber, message);
@@ -94,6 +94,25 @@ async function validateMeet(recipientNumber, nexmoNumber, message) {
     } else {
         sendMessage(recipientNumber, nexmoNumber, 'That is not the correct ID for your match')
     }
+}
+
+async function info(recipientNumber, nexmoNumber) {
+    const playerRef = await db.collection('players').doc(recipientNumber).get();
+    const player = playerRef.data();
+
+    let message = `Your Twitter username is set to ${player.twitter}. You've met with ${player.introsMade.length} matches so far.`
+
+    if(player.currentIntro) {
+        const matchRef = await db.collection('players').doc(player.currentIntro).get();
+        const match = matchRef.data();
+        message += `\n\nYour match is ${match.fullName} and their Twitter username is ${match.twitter}. Once you've met text us with "MEET <their_id>".`
+    } else {
+        message += `\n\nWe'll provide you with a new person to meet soon.`
+    }
+
+    message += `\n\nSomeone will have you as their match - once you've had a converastion give them your ID which is ${player.shortId}.`
+
+    sendMessage(recipientNumber, nexmoNumber, message);
 }
 
 function man(recipientNumber, nexmoNumber) {
