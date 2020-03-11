@@ -11,15 +11,13 @@ const nexmo = new Nexmo({ apiKey, apiSecret });
 
 const shortid = require('shortid');
 
-exports.inboundSMS = functions.https.onRequest(async (req, res) => {
+exports.inboundSMS = functions.https.onRequest((req, res) => {
     const { msisdn, to: nexmoNumber, text, keyword } = req.body;
     const message = removeKeyword(text);
     switch (keyword) {
         case 'JOIN':
-            createUser(msisdn, nexmoNumber, message);
-            break;
         case 'USERNAME':
-            updateUsername(msisdn, nexmoNumber, message);
+            setUsername(msisdn, nexmoNumber, message);
             break;
         case 'TWITTER':
             setTwitter(msisdn, nexmoNumber, message);
@@ -35,24 +33,28 @@ exports.inboundSMS = functions.https.onRequest(async (req, res) => {
             break;
         default:
             // return manual of commands
+            man(msisdn, nexmoNumber);
             break;
     }
     res.send(200);
 })
 
-async function createUser(recipientNumber, nexmoNumber, message) {
+function setUsername(recipientNumber, nexmoNumber, message) {
     let player = db.collection('players').doc(recipientNumber).get().then((doc) => {
         if (!doc.exists) {
-            db.collection("players").doc(recipientNumber).set({ 
-                fullName: message,
-                shortId: shortid.generate(),
-                active: true
-            }, { merge: true }).then(() => {
-                return sendMessage(recipientNumber, nexmoNumber, 'Awesome! Please reply with TWITTER <your_username>.')
-            }).catch((error) => {
-                return sendMessage(recipientNumber, nexmoNumber, 'We had a problem setting you up. Try "JOIN <your_username>".')
+            setUser({
+                recipientNumber, nexmoNumber,
+                data: { fullName: message, shortId: shortid.generate(), active: true },
+                onSuccess: 'Awesome! Please reply with TWITTER <your_username>.',
+                onFail: 'We had a problem setting you up. Try "JOIN <your_username>".'
             })
         } else {
+            setUser({
+                recipientNumber, nexmoNumber,
+                data: { fullName: message },
+                onSuccess: 'We have updated your username.',
+                onFail: 'We had a problem updating your username. Try "USERNAME <your_username>".'
+            })
             return updateUsername(recipientNumber, nexmoNumber, message);
         }
     }).catch(() => {
@@ -60,24 +62,22 @@ async function createUser(recipientNumber, nexmoNumber, message) {
     });
 }
 
-async function updateUsername(recipientNumber, nexmoNumber, message) {
-    db.collection("players").doc(recipientNumber).set({ 
-        fullName: message
-    }, { merge: true }).then(() => {
-        return sendMessage(recipientNumber, nexmoNumber, 'We have updated your username.')
-    }).catch((error) => {
-        return sendMessage(recipientNumber, nexmoNumber, 'We had a problem updating your username. Try "USERNAME <your_username>".')
-    });
+function setTwitter(recipientNumber, nexmoNumber, message) {
+    setUser({
+        recipientNumber, nexmoNumber,
+        data: { twitter: message },
+        onSuccess: 'We have set your Twitter username. We will message you when we have someone for you to meet.',
+        onFail: 'We had a problem setting your Twitter username.'
+    })
 }
 
-async function setTwitter(recipientNumber, nexmoNumber, message) {
-    db.collection("players").doc(recipientNumber).set({ 
-        twitter: message
-    }, { merge: true }).then(() => {
-        return sendMessage(recipientNumber, nexmoNumber, 'We have set your Twitter username. We will message you when we have someone for you to meet.')
-    }).catch((error) => {
-        return sendMessage(recipientNumber, nexmoNumber, 'We had a problem setting your Twitter username.')
-    });
+function setUser(payload) {
+    const { recipientNumber, nexmoNumber, data, onSuccess, onFail } = payload;
+    db.collection("players").doc(recipientNumber).set(data, { merge: true }).then(() => {
+        return sendMessage(recipientNumber, nexmoNumber, onSuccess);
+    }).catch(() => {
+        return sendMessage(recipientNumber, nexmoNumber, onFail);
+    })
 }
 
 function sendMessage(recipientNumber, nexmoNumber, message) {
