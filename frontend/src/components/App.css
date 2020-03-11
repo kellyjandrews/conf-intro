@@ -1,0 +1,12 @@
+.App {
+  height: 100vh;
+  overflow:hidden;
+}
+
+#player-count {
+  font-size: 10em;
+}
+
+.ui.grid {
+    min-height: 100%;
+}
