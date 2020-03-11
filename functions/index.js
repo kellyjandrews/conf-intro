@@ -123,7 +123,8 @@ function man(recipientNumber, nexmoNumber) {
         'USERNAME <username>: changes username',
         'TWITTER <twitter_handle>: sets Twitter username',
         'LEAVE: remove yourself from the game',
-        'MEET <match_id>: tell us you have found your match'
+        'MEET <match_id>: tell us you have found your match',
+        'INFO: Reminds you of your match\'s details'
     ]
     sendMessage(recipientNumber, nexmoNumber, man.join('\n\n'))
 }
