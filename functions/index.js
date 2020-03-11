@@ -23,7 +23,7 @@ exports.inboundSMS = functions.https.onRequest((req, res) => {
             setTwitter(msisdn, nexmoNumber, message);
             break;
         case 'LEAVE':
-            leave(msisdn, nexmoNumber);
+            leaveGame(msisdn, nexmoNumber);
             break;
         case 'INFO':
             info(msisdn, nexmoNumber); // should return my username/twitter/score and info of match
@@ -68,6 +68,15 @@ function setTwitter(recipientNumber, nexmoNumber, message) {
         data: { twitter: message },
         onSuccess: 'We have set your Twitter username. We will message you when we have someone for you to meet.',
         onFail: 'We had a problem setting your Twitter username.'
+    })
+}
+
+function leaveGame(recipientNumber, nexmoNumber) {
+    setUser({
+        recipientNumber, nexmoNumber,
+        data: { active: false },
+        onSuccess: 'You have successfully been removed from the game. We hope you enjoyed it.',
+        onFail: 'We had a problem removing you from the game. See a Vonage team member and they can manually do it for you.'
     })
 }
 
