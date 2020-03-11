@@ -1,3 +1,5 @@
+/* eslint-disable promise/no-nesting */
+/* eslint-disable promise/always-return */
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 admin.initializeApp();
@@ -11,15 +13,16 @@ const shortid = require('shortid');
 
 exports.inboundSMS = functions.https.onRequest(async (req, res) => {
     const { msisdn, to: nexmoNumber, text, keyword } = req.body;
+    const message = removeKeyword(text);
     switch (keyword) {
         case 'JOIN':
-            createUser(msisdn, nexmoNumber, text);
+            createUser(msisdn, nexmoNumber, message);
             break;
         case 'USERNAME':
-            updateUsername(msisdn, nexmoNumber, text);
+            updateUsername(msisdn, nexmoNumber, message);
             break;
         case 'TWITTER':
-            setTwitter(msisdn, nexmoNumber, text);
+            setTwitter(msisdn, nexmoNumber, message);
             break;
         case 'LEAVE':
             leave(msisdn, nexmoNumber);
@@ -28,7 +31,7 @@ exports.inboundSMS = functions.https.onRequest(async (req, res) => {
             info(msisdn, nexmoNumber); // should return my username/twitter/score and info of match
             break;
         case 'MEET':
-            meet(msisdn, nexmoNumber, text);
+            meet(msisdn, nexmoNumber, message);
             break;
         default:
             // return manual of commands
@@ -38,26 +41,28 @@ exports.inboundSMS = functions.https.onRequest(async (req, res) => {
 })
 
 async function createUser(recipientNumber, nexmoNumber, message) {
-    // TODO: CHECK USER DOES NOT ALREADY EXIST, AS TO NOT RESET THEIR SHORTID
-
-    const messageArr = message.split(' ');
-    messageArr.shift();
-    db.collection("players").doc(recipientNumber).set({ 
-        fullName: messageArr.join(' '),
-        shortId: shortid.generate(),
-        active: true
-    }, { merge: true }).then(() => {
-        return sendMessage(recipientNumber, nexmoNumber, 'Awesome! Please reply with TWITTER <your_username>.')
-    }).catch((error) => {
-        return sendMessage(recipientNumber, nexmoNumber, 'We had a problem setting you up. Try "JOIN <your_username>".')
+    let player = db.collection('players').doc(recipientNumber).get().then((doc) => {
+        if (!doc.exists) {
+            db.collection("players").doc(recipientNumber).set({ 
+                fullName: message,
+                shortId: shortid.generate(),
+                active: true
+            }, { merge: true }).then(() => {
+                return sendMessage(recipientNumber, nexmoNumber, 'Awesome! Please reply with TWITTER <your_username>.')
+            }).catch((error) => {
+                return sendMessage(recipientNumber, nexmoNumber, 'We had a problem setting you up. Try "JOIN <your_username>".')
+            })
+        } else {
+            return updateUsername(recipientNumber, nexmoNumber, message);
+        }
+    }).catch(() => {
+        return sendMessage(recipientNumber, nexmoNumber, 'We had a problem checking if you have already registered')
     });
 }
 
 async function updateUsername(recipientNumber, nexmoNumber, message) {
-    const messageArr = message.split(' ');
-    messageArr.shift();
     db.collection("players").doc(recipientNumber).set({ 
-        fullName: messageArr.join(' ')
+        fullName: message
     }, { merge: true }).then(() => {
         return sendMessage(recipientNumber, nexmoNumber, 'We have updated your username.')
     }).catch((error) => {
@@ -66,10 +71,8 @@ async function updateUsername(recipientNumber, nexmoNumber, message) {
 }
 
 async function setTwitter(recipientNumber, nexmoNumber, message) {
-    const messageArr = message.split(' ');
-    messageArr.shift();
     db.collection("players").doc(recipientNumber).set({ 
-        twitter: messageArr.join(' ')
+        twitter: message
     }, { merge: true }).then(() => {
         return sendMessage(recipientNumber, nexmoNumber, 'We have set your Twitter username. We will message you when we have someone for you to meet.')
     }).catch((error) => {
@@ -85,4 +88,10 @@ function sendMessage(recipientNumber, nexmoNumber, message) {
         else console.log(`Message failed with error: ${res.messages[0]['error-text']}`);
       }
     })
+}
+
+function removeKeyword(message) {
+    const a = message.split(' ');
+    a.shift();
+    return a.join(' ');
 }
