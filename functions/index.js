@@ -32,7 +32,6 @@ exports.inboundSMS = functions.https.onRequest((req, res) => {
             meet(msisdn, nexmoNumber, message);
             break;
         default:
-            // return manual of commands
             man(msisdn, nexmoNumber);
             break;
     }
@@ -78,6 +77,17 @@ function leaveGame(recipientNumber, nexmoNumber) {
         onSuccess: 'You have successfully been removed from the game. We hope you enjoyed it.',
         onFail: 'We had a problem removing you from the game. See a Vonage team member and they can manually do it for you.'
     })
+}
+
+function man(recipientNumber, nexmoNumber) {
+    let man = [
+        'HELP: show this manual',
+        'JOIN <username>: joins or re-enrols in game if you have left',
+        'USERNAME <username>: changes username',
+        'TWITTER <twitter_handle>: sets Twitter username',
+        'LEAVE: remove yourself from the game',
+    ]
+    sendMessage(recipientNumber, nexmoNumber, man.join('\n\n'))
 }
 
 function setUser(payload) {
