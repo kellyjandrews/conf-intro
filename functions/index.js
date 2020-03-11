@@ -41,8 +41,8 @@ function setUsername(recipientNumber, nexmoNumber, message) {
         if (!doc.exists) {
             setUser({
                 recipientNumber, nexmoNumber,
-                data: { fullName: message, shortId: generateId(), active: true, introsMade: [] },
-                onSuccess: 'Awesome! Please reply with TWITTER <your_username>.',
+                data: { fullName: message, shortId: generateId(), introsMade: [] },
+                onSuccess: 'Awesome! Please reply with TWITTER <your_username> to finish signing up.',
                 onFail: 'We had a problem setting you up. Try "JOIN <your_username>".'
             })
             // TODO: RUN MATCH
@@ -63,7 +63,7 @@ function setUsername(recipientNumber, nexmoNumber, message) {
 function setTwitter(recipientNumber, nexmoNumber, message) {
     setUser({
         recipientNumber, nexmoNumber,
-        data: { twitter: message },
+        data: { twitter: message, active: true },
         onSuccess: 'We have set your Twitter username. We will message you when we have someone for you to meet.',
         onFail: 'We had a problem setting your Twitter username.'
     })
