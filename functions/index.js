@@ -29,7 +29,7 @@ exports.inboundSMS = functions.https.onRequest((req, res) => {
             info(msisdn, nexmoNumber); // should return my username/twitter/score and info of match
             break;
         case 'MEET':
-            meet(msisdn, nexmoNumber, message);
+            validateMeet(msisdn, nexmoNumber, message);
             break;
         default:
             man(msisdn, nexmoNumber);
@@ -43,10 +43,11 @@ function setUsername(recipientNumber, nexmoNumber, message) {
         if (!doc.exists) {
             setUser({
                 recipientNumber, nexmoNumber,
-                data: { fullName: message, shortId: shortid.generate(), active: true },
+                data: { fullName: message, shortId: shortid.generate(), active: true, introsMade: [] },
                 onSuccess: 'Awesome! Please reply with TWITTER <your_username>.',
                 onFail: 'We had a problem setting you up. Try "JOIN <your_username>".'
             })
+            // TODO: RUN MATCH
         } else {
             setUser({
                 recipientNumber, nexmoNumber,
@@ -79,6 +80,24 @@ function leaveGame(recipientNumber, nexmoNumber) {
     })
 }
 
+async function validateMeet(recipientNumber, nexmoNumber, message) {
+    const playerRef = await db.collection('players').doc(recipientNumber).get();
+    const player = playerRef.data();
+    const matchRef = await db.collection('players').doc(player.currentIntro).get();
+    const match = matchRef.data();
+
+    if(String(match.shortId) === String(message)) {
+        setUser({
+            recipientNumber, nexmoNumber,
+            data: { currentIntro: null, introsMade: [...player.introsMade, player.currentIntro] },
+            onSuccess: 'Congrats on meeting! We will message you with a new person to meet soon.',
+            onFail: 'We had a problem storing your meet. Try again.'
+        })
+    } else {
+        sendMessage(recipientNumber, nexmoNumber, 'That is not the correct ID for your match')
+    }
+}
+
 function man(recipientNumber, nexmoNumber) {
     let man = [
         'HELP: show this manual',
@@ -86,6 +105,7 @@ function man(recipientNumber, nexmoNumber) {
         'USERNAME <username>: changes username',
         'TWITTER <twitter_handle>: sets Twitter username',
         'LEAVE: remove yourself from the game',
+        'MEET <match_id>: tell us you have found your match'
     ]
     sendMessage(recipientNumber, nexmoNumber, man.join('\n\n'))
 }
