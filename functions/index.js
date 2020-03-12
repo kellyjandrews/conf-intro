@@ -36,12 +36,23 @@ exports.inboundSMS = functions.https.onRequest((req, res) => {
     res.send(200);
 })
 
+exports.findMatches = functions.firestore
+    .document('players/{recipientNumber}')
+    .onUpdate(async (ref) => {
+        let playersRef = await db.collection("players").where("active", "==", true).where("currentIntro", "==", null).get();
+        return playersRef.forEach((doc) => {
+            let player = doc.data();
+            createMatch(doc.id, player.nexmoNumber);
+        })
+
+    });
+
 function setUsername(recipientNumber, nexmoNumber, message) {
     let player = db.collection('players').doc(recipientNumber).get().then((doc) => {
         if (!doc.exists) {
             setUser({
                 recipientNumber, nexmoNumber,
-                data: { fullName: message, shortId: generateId(), introsMade: [] },
+                data: { fullName: message, shortId: generateId(), introsMade: [], currentIntro: null, nexmoNumber },
                 onSuccess: 'Awesome! Please reply with TWITTER <your_username> to finish signing up.',
                 onFail: 'We had a problem setting you up. Try "JOIN <your_username>".'
             })
@@ -66,7 +77,6 @@ function setTwitter(recipientNumber, nexmoNumber, message) {
         onSuccess: 'We have set your Twitter username. We will message you when we have someone for you to meet.',
         onFail: 'We had a problem setting your Twitter username.'
     })
-    createMatch(recipientNumber, nexmoNumber)
 }
 
 function leaveGame(recipientNumber, nexmoNumber) {
@@ -91,7 +101,6 @@ async function validateMeet(recipientNumber, nexmoNumber, message) {
             onSuccess: 'Congrats on meeting! We will message you with a new person to meet soon.',
             onFail: 'We had a problem storing your meet. Try again.'
         })
-        createMatch(recipientNumber, nexmoNumber)
     } else {
         sendMessage(recipientNumber, nexmoNumber, 'That is not the correct ID for your match')
     }
@@ -169,7 +178,7 @@ async function createMatch(recipientNumber, nexmoNumber) {
             onFail: `We had a problem getting you a new match. We'll provide you with a new person to meet soon.`
         })
     } else {
-        sendMessage(recipientNumber, nexmoNumber, `You have met everyone on the list! We'll provide you with a new person to meet soon.`);
+        sendMessage(recipientNumber, nexmoNumber, `There are currently no matches available. We'll provide you with a new person to meet soon!`);
     }
     return;
 }
