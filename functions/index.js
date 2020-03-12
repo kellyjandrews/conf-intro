@@ -45,7 +45,6 @@ function setUsername(recipientNumber, nexmoNumber, message) {
                 onSuccess: 'Awesome! Please reply with TWITTER <your_username> to finish signing up.',
                 onFail: 'We had a problem setting you up. Try "JOIN <your_username>".'
             })
-            // TODO: RUN MATCH
         } else {
             setUser({
                 recipientNumber, nexmoNumber,
@@ -67,6 +66,7 @@ function setTwitter(recipientNumber, nexmoNumber, message) {
         onSuccess: 'We have set your Twitter username. We will message you when we have someone for you to meet.',
         onFail: 'We had a problem setting your Twitter username.'
     })
+    createMatch(recipientNumber, nexmoNumber)
 }
 
 function leaveGame(recipientNumber, nexmoNumber) {
@@ -91,7 +91,7 @@ async function validateMeet(recipientNumber, nexmoNumber, message) {
             onSuccess: 'Congrats on meeting! We will message you with a new person to meet soon.',
             onFail: 'We had a problem storing your meet. Try again.'
         })
-        // TODO: RUN MATCH
+        createMatch(recipientNumber, nexmoNumber)
     } else {
         sendMessage(recipientNumber, nexmoNumber, 'That is not the correct ID for your match')
     }
@@ -129,8 +129,7 @@ function man(recipientNumber, nexmoNumber) {
     sendMessage(recipientNumber, nexmoNumber, man.join('\n\n'))
 }
 
-function setUser(payload) {
-    const { recipientNumber, nexmoNumber, data, onSuccess, onFail } = payload;
+function setUser({ recipientNumber, nexmoNumber, data, onSuccess, onFail }) {
     db.collection("players").doc(recipientNumber).set(data, { merge: true }).then(() => {
         return sendMessage(recipientNumber, nexmoNumber, onSuccess);
     }).catch(() => {
@@ -152,6 +151,27 @@ function removeKeyword(message) {
     const a = message.split(' ');
     a.shift();
     return a.join(' ');
+}
+
+async function createMatch(recipientNumber, nexmoNumber) {
+    let playersRef = await db.collection("players").where("active", "==", true).get();
+    let playerRef = await db.collection('players').doc(recipientNumber).get();
+    let pool = playersRef.docs
+        .filter((ref) => ref.id !== playerRef.id && playerRef.data().introsMade.indexOf(ref.id) === -1)
+    
+    if (pool.length > 0) {
+        let newMatch = pool[Math.floor(Math.random() * pool.length)];
+        const match = newMatch.data();
+        setUser({
+            recipientNumber, nexmoNumber,
+            data: { currentIntro: newMatch.id },
+            onSuccess: `Your match is ${ match.fullName } and their Twitter username is ${ match.twitter }. Once you've met text us with "MEET <their_id>".`,
+            onFail: `We had a problem getting you a new match. We'll provide you with a new person to meet soon.`
+        })
+    } else {
+        sendMessage(recipientNumber, nexmoNumber, `You have met everyone on the list! We'll provide you with a new person to meet soon.`);
+    }
+    return;
 }
 
 function generateId() {
