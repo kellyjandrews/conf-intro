@@ -20,14 +20,11 @@ function Player({ player, size = "h5" }) {
       <List.Item >
       <List.Content success>
           <Grid>
-            <Grid.Row columns={3}>
+            <Grid.Row columns={2}>
               <Grid.Column width={14}>
               <List.Header as={size}>{player.fullName}</List.Header>
               </Grid.Column>
-            <Grid.Column textAlign="center" width={1}>
-              <List.Header as={size}><Icon color={player.active ? "green" : "grey"} name='circle' /></List.Header>
-              </Grid.Column>
-            <Grid.Column textAlign="center" width={1}>
+            <Grid.Column textAlign="center" width={2}>
                 <List.Header as={size}>{player.score}</List.Header>
               </Grid.Column>
             </Grid.Row>
