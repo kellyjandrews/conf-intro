@@ -9,7 +9,7 @@
     "firebase": "^7.9.1",
     "react": "0.0.0-experimental-235a6c4af",
     "react-dom": "0.0.0-experimental-235a6c4af",
-    "react-scripts": "3.4.0",
+    "react-scripts": "5.0.1",
     "reactfire": "^2.0.1",
     "semantic-ui-css": "^2.4.1",
     "semantic-ui-react": "^0.88.2"
